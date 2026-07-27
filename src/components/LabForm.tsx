@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { LabRequest, MaterialDetail, Reminder } from '../types';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { LabRequest } from '../types';
 import { RENDER_FIELDS } from '../constants';
 
 interface LabFormProps {
@@ -7,43 +7,153 @@ interface LabFormProps {
   onUpdate: (updatedForm: LabRequest) => void;
 }
 
+interface AutoFitFieldProps {
+  element?: 'input' | 'textarea';
+  className: string;
+  baseFontSize: number;
+  value: string;
+  onChange: (value: string) => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
+  title?: string;
+}
+
+const AutoFitField: React.FC<AutoFitFieldProps> = ({
+  element = 'input',
+  className,
+  baseFontSize,
+  value,
+  onChange,
+  onDoubleClick,
+  title
+}) => {
+  const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const [scale, setScale] = useState<number>(1.0);
+
+  const baseCqw = (baseFontSize / 415) * 100;
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calculateScale = () => {
+      const minScale = 0.25; // Scale down to 25% if text is very long
+      const maxScale = 1.0;
+
+      // Start by checking if maxScale (1.0) already fits without overflow
+      el.style.fontSize = `${baseCqw * maxScale}cqw`;
+      if (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) {
+        return maxScale;
+      }
+
+      // Binary search for the maximum font size scale that fits inside the box
+      let low = minScale;
+      let high = maxScale;
+      let best = minScale;
+
+      for (let i = 0; i < 10; i++) {
+        const mid = (low + high) / 2;
+        el.style.fontSize = `${baseCqw * mid}cqw`;
+
+        const overflows = el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+
+        if (overflows) {
+          high = mid;
+        } else {
+          best = mid;
+          low = mid;
+        }
+      }
+
+      return best;
+    };
+
+    const bestScale = calculateScale();
+    setScale(bestScale);
+
+    const observer = new ResizeObserver(() => {
+      if (ref.current) {
+        const newScale = calculateScale();
+        setScale(newScale);
+      }
+    });
+
+    if (el.parentElement) {
+      observer.observe(el.parentElement);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [value, baseCqw]);
+
+  const finalStyle: React.CSSProperties = {
+    fontSize: `${baseCqw * scale}cqw`
+  };
+
+  if (element === 'textarea') {
+    return (
+      <textarea
+        ref={ref as React.RefObject<HTMLTextAreaElement>}
+        className={className}
+        style={finalStyle}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onDoubleClick={onDoubleClick}
+        title={title}
+      />
+    );
+  }
+
+  return (
+    <input
+      ref={ref as React.RefObject<HTMLInputElement>}
+      type="text"
+      className={className}
+      style={finalStyle}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onDoubleClick={onDoubleClick}
+      title={title}
+    />
+  );
+};
+
 const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
   const [fontSizes, setFontSizes] = useState<Record<string, number>>({});
   const [setter, setSetter] = useState<{ visible: boolean; x: number; y: number; field: string; baseSize: number } | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
+
+  // Clear any temporary editor positions saved in localStorage
+  useEffect(() => {
+    try {
+      localStorage.removeItem('lrf_field_positions');
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const cleanAgeSex = (ageSexString: string) => {
     if (!ageSexString) return { age: '', sex: '' };
-    // Remove "years old" and other common suffixes
     let cleaned = ageSexString.toLowerCase().replace(/years old|yo|y\/o|yrs|yr/g, '').trim();
 
-    // Try to find a separator first
     let age = '';
     let sex = '';
 
     if (cleaned.includes('/')) {
-      let parts = cleaned.split('/');
-      age = parts[0].trim();
-      sex = parts[1].trim().toUpperCase();
-    } else if (cleaned.includes(',')) {
-      let parts = cleaned.split(',');
+      const parts = cleaned.split('/');
       age = parts[0].trim();
       sex = parts[1].trim().toUpperCase();
     } else {
-      // No standard separator, try to split by the last character if it's M or F
       const lastChar = cleaned.slice(-1).toUpperCase();
       if (lastChar === 'M' || lastChar === 'F') {
         sex = lastChar;
         age = cleaned.slice(0, -1).trim();
       } else {
-        // Fallback to space split
         let parts = cleaned.split(' ');
         sex = parts.pop()?.toUpperCase() || '';
         age = parts.join(' ').trim();
       }
     }
 
-    // Final cleanup: ensure sex is just M or F
     if (sex.includes('MALE')) sex = 'M';
     if (sex.includes('FEMALE')) sex = 'F';
     if (sex.length > 1 && (sex.startsWith('M') || sex.startsWith('F'))) {
@@ -59,29 +169,22 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setSetter({
       visible: true,
-      x: rect.right + 10,
-      y: rect.top,
+      x: rect.left,
+      y: rect.bottom + 5,
       field: fieldClass,
       baseSize: fontSizes[fieldClass] || defaultSize
     });
   };
 
-  const applyFontSize = (size: number) => {
+  const handleFontSizeChange = (size: number) => {
     if (setter) {
       setFontSizes(prev => ({ ...prev, [setter.field]: size }));
       setSetter(null);
     }
   };
 
-  const shrinkToFit = (text: string, width: number, height: number, baseSize: number, isMultiLine: boolean) => {
-    // This is a simplified version for React rendering. 
-    // In a real app, we might use a hidden canvas or div to measure.
-    // For now, we'll return the baseSize and rely on CSS for basic overflow.
-    return baseSize;
-  };
-
   return (
-    <div className="form-container" ref={formRef}>
+    <div className="form-container">
       <div 
         className="form-preview lrf-coords"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}single_lrf.jpg)` }}
@@ -91,31 +194,15 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
           
           const value = field.key === 'name' ? (form.name || '').toUpperCase() : (form as any)[field.key] || '';
           const baseSize = fontSizes[field.class] || field.defaultFontSize || 16;
-          // Convert px to cqw (container query width) for responsiveness
-          // 16px at 415px width is ~3.85cqw
-          const cqwSize = (baseSize / 415) * 100;
           
-          if (field.element === 'textarea') {
-            return (
-              <textarea
-                key={idx}
-                className={`overlay-field ${field.class}`}
-                style={{ fontSize: `${cqwSize}cqw` }}
-                value={value}
-                onChange={(e) => onUpdate({ ...form, [field.key!]: e.target.value })}
-                onDoubleClick={(e) => handleDoubleClick(e, field.class, field.defaultFontSize || 16)}
-                title={field.title}
-              />
-            );
-          }
           return (
-            <input
+            <AutoFitField
               key={idx}
-              type="text"
+              element={field.element === 'textarea' ? 'textarea' : 'input'}
               className={`overlay-field ${field.class}`}
-              style={{ fontSize: `${cqwSize}cqw` }}
+              baseFontSize={baseSize}
               value={value}
-              onChange={(e) => onUpdate({ ...form, [field.key!]: e.target.value })}
+              onChange={(val) => onUpdate({ ...form, [field.key!]: val })}
               onDoubleClick={(e) => handleDoubleClick(e, field.class, field.defaultFontSize || 16)}
               title={field.title}
             />
@@ -123,29 +210,32 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
         })}
 
         {/* Special Fields */}
-        <input
-          type="text"
+        <AutoFitField
+          element="input"
           className="overlay-field age-sex-age"
-          style={{ fontSize: `${((fontSizes['age-sex-age'] || 16) / 415) * 100}cqw` }}
+          baseFontSize={fontSizes['age-sex-age'] || 16}
           value={ageSexData.age}
-          onChange={(e) => onUpdate({ ...form, age_sex: `${e.target.value}/${ageSexData.sex}` })}
+          onChange={(val) => onUpdate({ ...form, age_sex: `${val}/${ageSexData.sex}` })}
           onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-age', 16)}
           title="AGE"
         />
-        <input
-          type="text"
+
+        <AutoFitField
+          element="input"
           className="overlay-field age-sex-sex"
-          style={{ fontSize: `${((fontSizes['age-sex-sex'] || 16) / 415) * 100}cqw` }}
+          baseFontSize={fontSizes['age-sex-sex'] || 16}
           value={ageSexData.sex}
-          onChange={(e) => onUpdate({ ...form, age_sex: `${ageSexData.age}/${e.target.value}` })}
+          onChange={(val) => onUpdate({ ...form, age_sex: `${ageSexData.age}/${val}` })}
           onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-sex', 16)}
           title="SEX"
         />
-        <textarea
+
+        <AutoFitField
+          element="textarea"
           className="overlay-field requests-field"
-          style={{ fontSize: `${((fontSizes['requests-field'] || 16) / 415) * 100}cqw` }}
-          value={form.requests_list}
-          onChange={(e) => onUpdate({ ...form, requests_list: e.target.value })}
+          baseFontSize={fontSizes['requests-field'] || 16}
+          value={form.requests_list || ''}
+          onChange={(val) => onUpdate({ ...form, requests_list: val })}
           onDoubleClick={(e) => handleDoubleClick(e, 'requests-field', 16)}
           title="LAB EXAM"
         />
@@ -154,20 +244,18 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
       {setter && setter.visible && (
         <div 
           className="font-setter-container"
-          style={{ left: setter.x, top: setter.y }}
+          style={{ left: `${setter.x}px`, top: `${setter.y}px` }}
         >
-          <span>Size:</span>
-          <input
-            type="number"
-            className="font-setter-input"
-            defaultValue={setter.baseSize}
-            min={10}
-            max={30}
-            autoFocus
-            onBlur={(e) => applyFontSize(parseInt(e.target.value))}
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Font Size (px): </label>
+          <input 
+            type="number" 
+            className="w-16 px-2 py-1 text-xs border rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+            defaultValue={setter.baseSize} 
+            onBlur={(e) => handleFontSizeChange(parseFloat(e.target.value) || setter.baseSize)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') applyFontSize(parseInt((e.target as HTMLInputElement).value));
+              if (e.key === 'Enter') handleFontSizeChange(parseFloat((e.target as HTMLInputElement).value) || setter.baseSize);
             }}
+            autoFocus
           />
         </div>
       )}

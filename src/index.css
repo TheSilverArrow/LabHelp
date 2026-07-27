@@ -194,20 +194,23 @@ textarea {
 
 /* Form Container */
 .form-container {
-  @apply bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] w-full max-w-[415px] aspect-[415/587] relative overflow-hidden rounded-[4px] mx-auto md:mx-0 transition-all duration-300;
-  container-type: inline-size;
+  @apply bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] w-full max-w-[415px] relative rounded-[8px] mx-auto md:mx-0 transition-all duration-300;
 }
 .dark .form-container {
   @apply bg-[#1e293b] border-[#334155] shadow-[0_4px_12px_rgba(0,0,0,0.4)];
 }
 
 .form-preview {
-  @apply w-full h-full bg-no-repeat relative bg-center bg-gray-50 border border-gray-200;
+  @apply w-full aspect-[415/587] bg-no-repeat relative bg-center bg-gray-50 border border-gray-200 overflow-hidden rounded-[4px];
   background-size: 100% 100%;
+  container-type: inline-size;
 }
 
 .overlay-field {
   @apply absolute font-sans text-black border border-dashed border-[#007bff] bg-[rgba(0,123,255,0.1)] px-[2px] box-border z-10 resize-none overflow-hidden text-left whitespace-pre-wrap origin-top-left transition-colors duration-300;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
 .dark .overlay-field {
@@ -227,20 +230,20 @@ textarea {
 }
 
 /* Coordinates - Percentage based for responsiveness */
-.ward-location { top: 25.55%; left: 1.93%; width: 74.7%; height: 4.43%; text-transform: uppercase;}
-.patient-name { top: 32.37%; left: 1.93%; width: 74.7%; height: 4.43%; text-transform: uppercase;}
-.age-sex-age { top: 38.33%; left: 2.41%; width: 12.05%; height: 4.26%; }
-.age-sex-sex { top: 38.33%; left: 35.9%; width: 12.05%; height: 4.26%; }
-.case-number { top: 38.33%; left: 55.9%; width: 31.33%; height: 4.26%; }
+.ward-location { top: 26.25%; left: 2.33%; width: 74.70%; height: 4.43%; text-transform: uppercase; }
+.patient-name { top: 32.37%; left: 2.33%; width: 74.70%; height: 4.43%; text-transform: uppercase; }
+.age-sex-age { top: 38.33%; left: 2.81%; width: 12.05%; height: 4.26%; }
+.age-sex-sex { top: 38.33%; left: 35.90%; width: 12.05%; height: 4.26%; }
+.case-number { top: 38.33%; left: 55.90%; width: 31.33%; height: 4.26%; }
 .birthday { top: 42.93%; left: 21.69%; width: 72.29%; height: 4.26%; }
 .diagnosis { top: 48.55%; left: 21.69%; width: 81.93%; height: 5.11%; }
 .requested-by { top: 57.07%; left: 1.93%; width: 91.57%; height: 5.11%; }
-.requests-field { top: 66.44%; left: 1.93%; width: 96.39%; height: 7.67%; }
-.specimen-type { top: 79.22%; left: 1.93%; width: 18.07%; height: 5.11%; }
-.site-of-collection { top: 79.73%; left: 26.51%; width: 18.07%; height: 5.11%; }
-.time-collected { top: 91.65%; left: 50.6%; width: 21.69%; height: 5.11%; }
-.date-collected { top: 91.65%; left: 77.11%; width: 21.69%; height: 5.11%; }
-.collected-by { top: 79.22%; left: 53.01%; width: 36.14%; height: 5.11%; }
+.requests-field { top: 64.45%; left: 2.18%; width: 95.66%; height: 8.01%; }
+.specimen-type { top: 76.14%; left: 4.59%; width: 18.07%; height: 5.11%; }
+.site-of-collection { top: 77.50%; left: 27.24%; width: 18.07%; height: 5.11%; }
+.collected-by { top: 77.34%; left: 49.13%; width: 47.77%; height: 5.62%; }
+.time-collected { top: 89.42%; left: 50.60%; width: 21.69%; height: 5.11%; }
+.date-collected { top: 89.25%; left: 75.66%; width: 21.69%; height: 5.11%; }
 
 /* Materials & Reminders */
 .materials-and-reminders-group {
