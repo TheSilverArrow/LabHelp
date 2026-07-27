@@ -36,22 +36,27 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
     if (!el) return;
 
     const calculateScale = () => {
-      const minScale = 0.3; // Scale down to 30% if text is very long
+      const minScale = 0.2; // Allow scaling down to 20% for very long text
       const maxScale = 1.0;
 
-      const checkFits = () => {
+      const containerWidth = el.parentElement ? el.parentElement.clientWidth : 415;
+      if (!containerWidth || !el.clientHeight) return 1.0;
+
+      const basePx = (baseFontSize / 415) * containerWidth;
+
+      const checkFits = (testPx: number) => {
+        el.style.fontSize = `${testPx}px`;
         if (element === 'textarea') {
-          // Multi-line textareas wrap text automatically.
-          // Check vertical overflow (scrollHeight vs clientHeight).
-          return el.scrollHeight <= el.clientHeight + 2;
+          // Check vertical overflow for textareas
+          return el.scrollHeight <= el.clientHeight + 1;
         }
-        // Single-line inputs: check scrollWidth and scrollHeight
-        return el.scrollWidth <= el.clientWidth + 3 && el.scrollHeight <= el.clientHeight + 2;
+        // Single line inputs: check both horizontal and vertical overflow
+        return el.scrollWidth <= el.clientWidth + 2 && el.scrollHeight <= el.clientHeight + 1;
       };
 
-      // Check if maxScale fits directly
-      el.style.fontSize = `${baseCqw * maxScale}cqw`;
-      if (checkFits()) {
+      // Check if full scale fits directly
+      if (checkFits(basePx * maxScale)) {
+        el.style.fontSize = '';
         return maxScale;
       }
 
@@ -59,18 +64,17 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
       let high = maxScale;
       let best = minScale;
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 12; i++) {
         const mid = (low + high) / 2;
-        el.style.fontSize = `${baseCqw * mid}cqw`;
-
-        if (!checkFits()) {
-          high = mid;
-        } else {
+        if (checkFits(basePx * mid)) {
           best = mid;
-          low = mid;
+          low = mid; // Try larger font
+        } else {
+          high = mid; // Need smaller font
         }
       }
 
+      el.style.fontSize = '';
       return best;
     };
 
@@ -91,7 +95,7 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [value, baseCqw]);
+  }, [value, baseFontSize, element]);
 
   const finalStyle: React.CSSProperties = {
     fontSize: `${baseCqw * scale}cqw`
