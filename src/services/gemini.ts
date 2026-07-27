@@ -28,10 +28,10 @@ export const JSON_SCHEMA = {
   }
 };
 
-export async function extractLabData(text: string, collector: string, date: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function extractLabData(text: string, collector: string, date: string, customApiKey?: string) {
+  const apiKey = customApiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null) || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is missing.");
+    throw new Error("GEMINI_API_KEY is missing. Please configure your API key in AI Studio Secrets or set a custom key in app settings.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -41,15 +41,22 @@ export async function extractLabData(text: string, collector: string, date: stri
     .replace("__COLLECTOR_DEFAULT__", collector || "")
     .replace("__DATE_DEFAULT__", date);
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: [{ parts: [{ text }] }],
-    config: {
-      systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: JSON_SCHEMA,
-    },
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [{ parts: [{ text }] }],
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: JSON_SCHEMA,
+      },
+    });
 
-  return JSON.parse(response.text || "[]");
+    return JSON.parse(response.text || "[]");
+  } catch (err: any) {
+    if (err?.message?.includes("leaked") || err?.status === "PERMISSION_DENIED" || err?.code === 403) {
+      throw new Error("Your Gemini API key was reported as leaked or revoked (HTTP 403). Please update your API key in AI Studio Secrets.");
+    }
+    throw err;
+  }
 }

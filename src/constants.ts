@@ -482,7 +482,7 @@ export const RENDER_FIELDS = [
   { class: 'birthday', key: 'birthday', title: 'BIRTH DATE', defaultFontSize: 16 },
   { class: 'diagnosis', key: 'diagnosis', title: 'DIAGNOSIS', element: 'textarea', defaultFontSize: 16, isMultiLine: true },
   { class: 'requested-by', key: 'requested_by', title: 'REQUESTED BY', defaultFontSize: 16 },
-  { class: 'collected-by', key: 'collected_by', title: 'COLLECTED BY', defaultFontSize: 23 },
+  { class: 'collected-by', key: 'collected_by', title: 'COLLECTED BY', defaultFontSize: 16 },
   { class: 'date-collected', key: 'date_collected', title: 'DATE COLLECTOED', defaultFontSize: 16 },
   { class: 'time-collected', key: 'time_collected', title: 'TIME COLLECTED', defaultFontSize: 16 },
   { class: 'specimen-type', key: 'specimen_type', title: 'SPECIMEN TYPE', defaultFontSize: 16 },

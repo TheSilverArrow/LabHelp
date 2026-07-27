@@ -107,9 +107,9 @@ const TalongTab: React.FC = () => {
         setForms(newForms);
         calculateMaterialsAndReminders(newForms);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Error extracting data. Check console.");
+      alert(error?.message || "Error extracting data. Please check your API key or try again.");
     } finally {
       setLoading(false);
     }
