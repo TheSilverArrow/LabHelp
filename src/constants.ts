@@ -54,9 +54,9 @@ AFP|Blood|Red|Immunopathology
 CA 19-9|Blood|Red|Immunopathology
 CEA|Blood|Red|Immunopathology
 HE 4|Blood|Red|Immunopathology
-TSH (Thyroid Stimulating Hormone)|Blood|Red|Immunopathology
-FT3 (Free Triiodothyronine)|Blood|Red|Immunopathology
-FT4 (Free Thyroxine)|Blood|Red|Immunopathology
+TSH|Blood|Red|Immunopathology
+FT3|Blood|Red|Immunopathology
+FT4|Blood|Red|Immunopathology
 Dengue IgG|Blood|Red|Immunopathology
 Dengue IgM|Blood|Red|Immunopathology
 Dengue NS1 Ag|Blood|Red|Immunopathology
