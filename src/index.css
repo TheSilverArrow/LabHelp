@@ -128,10 +128,10 @@ label, h3, .control-label, .instruction-text2, .instruction-text3 {
   @apply text-[16px] mt-[5px] font-bold !text-[#334155];
 }
 
-textarea {
+textarea:not(.overlay-field) {
   @apply w-full h-[300px] p-[15px] border-2 border-[#334155] rounded-[6px] resize-y box-border mb-[10px] font-mono text-[13px] transition-all focus:border-[#334155] focus:shadow-[0_0_0_0.2rem_rgba(51,65,85,0.25)] focus:outline-none;
 }
-.dark textarea {
+.dark textarea:not(.overlay-field) {
   @apply bg-[#0f172a] text-white border-[#475569] focus:border-[#64748b] focus:shadow-[0_0_0_0.2rem_rgba(100,116,139,0.25)];
 }
 
@@ -207,14 +207,21 @@ textarea {
 }
 
 .overlay-field {
-  @apply absolute font-sans text-black border border-dashed border-[#007bff] bg-[rgba(0,123,255,0.1)] px-[2px] box-border z-10 resize-none overflow-hidden text-left whitespace-pre-wrap origin-top-left transition-colors duration-300;
+  @apply absolute font-sans text-black box-border z-10 resize-none overflow-hidden text-left whitespace-pre-wrap origin-top-left transition-colors duration-300;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: 1px dashed #007bff;
+  outline-offset: -1px;
+  background-color: rgba(0, 123, 255, 0.1);
   word-break: break-word;
   overflow-wrap: anywhere;
   line-height: 1.15;
 }
 
 .dark .overlay-field {
-  @apply bg-[rgba(0,123,255,0.1)] text-black border-[#007bff];
+  background-color: rgba(0, 123, 255, 0.1);
+  color: black;
 }
 
 .overlay-field:not(.diagnosis):not(.requests-field) {
@@ -238,7 +245,7 @@ textarea {
 .birthday { top: 42.93%; left: 21.69%; width: 72.29%; height: 4.26%; }
 .diagnosis { top: 48.55%; left: 21.69%; width: 81.93%; height: 5.11%; }
 .requested-by { top: 57.07%; left: 1.93%; width: 91.57%; height: 5.11%; }
-.requests-field { top: 64.45%; left: 2.18%; width: 95.66%; height: 8.01%; }
+.requests-field { top: 66.50%; left: 2.18%; width: 95.66%; height: 7.80%; }
 .specimen-type { top: 76.14%; left: 4.59%; width: 18.07%; height: 5.11%; }
 .site-of-collection { top: 77.50%; left: 27.24%; width: 18.07%; height: 5.11%; }
 .collected-by { top: 77.34%; left: 49.13%; width: 47.77%; height: 5.62%; }
@@ -392,6 +399,7 @@ input:checked + .slider:before {
 
   .overlay-field {
     border: none !important;
+    outline: none !important;
     background: transparent !important;
     color: black !important;
     font-family: sans-serif !important;
