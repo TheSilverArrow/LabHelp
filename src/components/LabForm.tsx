@@ -213,30 +213,30 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
         <AutoFitField
           element="input"
           className="overlay-field age-sex-age"
-          baseFontSize={fontSizes['age-sex-age'] || 16}
+          baseFontSize={fontSizes['age-sex-age'] || 20}
           value={ageSexData.age}
           onChange={(val) => onUpdate({ ...form, age_sex: `${val}/${ageSexData.sex}` })}
-          onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-age', 16)}
+          onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-age', 20)}
           title="AGE"
         />
 
         <AutoFitField
           element="input"
           className="overlay-field age-sex-sex"
-          baseFontSize={fontSizes['age-sex-sex'] || 16}
+          baseFontSize={fontSizes['age-sex-sex'] || 20}
           value={ageSexData.sex}
           onChange={(val) => onUpdate({ ...form, age_sex: `${ageSexData.age}/${val}` })}
-          onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-sex', 16)}
+          onDoubleClick={(e) => handleDoubleClick(e, 'age-sex-sex', 20)}
           title="SEX"
         />
 
         <AutoFitField
           element="textarea"
           className="overlay-field requests-field"
-          baseFontSize={fontSizes['requests-field'] || 16}
+          baseFontSize={fontSizes['requests-field'] || 22}
           value={form.requests_list || ''}
           onChange={(val) => onUpdate({ ...form, requests_list: val })}
-          onDoubleClick={(e) => handleDoubleClick(e, 'requests-field', 16)}
+          onDoubleClick={(e) => handleDoubleClick(e, 'requests-field', 22)}
           title="LAB EXAM"
         />
       </div>
