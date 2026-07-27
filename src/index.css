@@ -328,13 +328,20 @@ input:checked + .slider:before {
 
 /* Print Styles */
 @media print {
-  /* Hide everything except the print content */
+  @page {
+    size: A4 portrait;
+    margin: 5mm;
+  }
+
   html, body {
     margin: 0 !important;
     padding: 0 !important;
-    height: auto !important;
+    width: 100% !important;
+    height: 100% !important;
     overflow: visible !important;
     background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body * {
@@ -346,38 +353,80 @@ input:checked + .slider:before {
   }
   
   .print-content {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
+    max-width: 200mm !important;
+    margin: 0 auto !important;
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 5px !important;
+    gap: 3mm 3mm !important;
     justify-content: center !important;
+    align-content: start !important;
     padding: 0 !important;
-    margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .form-container {
-    @apply !w-[415px] h-[587px] !m-0 !p-0 !shadow-none !border-none overflow-hidden;
-    page-break-after: auto;
+    width: 96mm !important;
+    height: 135.8mm !important;
+    max-width: 96mm !important;
+    max-height: 135.8mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     visibility: visible !important;
   }
 
   .form-container:nth-child(4n) {
     page-break-after: always !important;
+    break-after: page !important;
   }
 
   .form-preview {
-    @apply w-full h-[587px] bg-contain;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 415 / 587 !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    container-type: inline-size !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     visibility: visible !important;
+    overflow: hidden !important;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   .overlay-field {
-    @apply border-none !bg-transparent text-black font-sans !scale-100 origin-top-left p-0 px-[1px] !absolute !shadow-none;
+    border: none !important;
+    background: transparent !important;
+    color: black !important;
+    font-family: sans-serif !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: absolute !important;
+    box-shadow: none !important;
     visibility: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .overlay-field input,
+  .overlay-field textarea {
+    border: none !important;
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    outline: none !important;
+    resize: none !important;
   }
 }
 

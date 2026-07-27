@@ -1321,10 +1321,10 @@ Na,K,Cl'
               <strong>• Change Font Size:</strong> Double-click any text box. A size input will pop out.
             </p>
             <p className="text-base mt-1.25 text-[#374151]">
-              <strong>• Printing:</strong> Set scale to 88% and ensure paper size is A4.
+              <strong>• Printing:</strong> Paper size: A4. Standard scale (100%) fits 4 forms perfectly on 1 A4 page.
             </p>
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
-              <p className="text-xs text-gray-500 italic">Scale to 88% and ensure paper size is A4 for best results.</p>
+              <p className="text-xs text-gray-500 italic">Ensure paper size is A4. Standard scale (100%) fits 4 forms on 1 page.</p>
             </div>
           </div>
 
