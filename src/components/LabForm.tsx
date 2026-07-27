@@ -36,16 +36,25 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
     if (!el) return;
 
     const calculateScale = () => {
-      const minScale = 0.25; // Scale down to 25% if text is very long
+      const minScale = 0.3; // Scale down to 30% if text is very long
       const maxScale = 1.0;
 
-      // Start by checking if maxScale (1.0) already fits without overflow
+      const checkFits = () => {
+        if (element === 'textarea') {
+          // Multi-line textareas wrap text automatically.
+          // Check vertical overflow (scrollHeight vs clientHeight).
+          return el.scrollHeight <= el.clientHeight + 2;
+        }
+        // Single-line inputs: check scrollWidth and scrollHeight
+        return el.scrollWidth <= el.clientWidth + 3 && el.scrollHeight <= el.clientHeight + 2;
+      };
+
+      // Check if maxScale fits directly
       el.style.fontSize = `${baseCqw * maxScale}cqw`;
-      if (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) {
+      if (checkFits()) {
         return maxScale;
       }
 
-      // Binary search for the maximum font size scale that fits inside the box
       let low = minScale;
       let high = maxScale;
       let best = minScale;
@@ -54,9 +63,7 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
         const mid = (low + high) / 2;
         el.style.fontSize = `${baseCqw * mid}cqw`;
 
-        const overflows = el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
-
-        if (overflows) {
+        if (!checkFits()) {
           high = mid;
         } else {
           best = mid;
