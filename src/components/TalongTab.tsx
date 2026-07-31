@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { Copy, Check } from 'lucide-react';
 import { LabRequest, MaterialDetail, Reminder } from '../types';
 import { extractLabData } from '../services/gemini';
 import LabForm from './LabForm';
@@ -24,6 +26,8 @@ const TalongTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [materials, setMaterials] = useState<Record<string, MaterialDetail>>({});
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [customLabelText, setCustomLabelText] = useState<string | null>(null);
+  const [copiedLabel, setCopiedLabel] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('pgh_collector_name', collector);
@@ -40,8 +44,194 @@ const TalongTab: React.FC = () => {
     return `${month}-${day}`;
   };
 
+  const getTime10MinsAgo = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - 10);
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  const getComputedLabelText = () => {
+    const nameStr = (manualName || forms[0]?.name || '').trim().toUpperCase();
+    const ageStr = manualAge.trim();
+    const sexStr = manualSex.trim().toUpperCase();
+    let ageSexStr = '';
+    if (ageStr || sexStr) {
+      if (ageStr && sexStr) ageSexStr = `${ageStr}/${sexStr}`;
+      else ageSexStr = ageStr || sexStr;
+    } else if (forms[0]?.age_sex) {
+      ageSexStr = forms[0].age_sex.trim().toUpperCase();
+    }
+    const line1 = [nameStr, ageSexStr].filter(Boolean).join(' ');
+
+    let cnRaw = (manualCN || forms[0]?.case_number || '').trim().toUpperCase();
+    if (cnRaw && !cnRaw.startsWith('CN:') && !cnRaw.startsWith('CN ')) {
+      cnRaw = `CN: ${cnRaw}`;
+    }
+
+    let bdayRaw = (manualBirthday || forms[0]?.birthday || '').trim();
+    if (bdayRaw) {
+      bdayRaw = bdayRaw.replaceAll('-', '/');
+      bdayRaw = bdayRaw.replace(/^(DOB:|BD:)\s*/i, '');
+      bdayRaw = `DOB: ${bdayRaw}`;
+    }
+    const line2 = [cnRaw, bdayRaw].filter(Boolean).join(' ');
+
+    const dateStr = forms[0]?.date_collected || getCurrentDateMMDD();
+    const rawTime = (timeCollected || forms[0]?.time_collected || '').trim().toUpperCase();
+    const timeStr = rawTime || getTime10MinsAgo();
+    const collectorStr = (collector || forms[0]?.collected_by || '').trim().toUpperCase();
+
+    let formattedDate = '';
+    if (dateStr) {
+      const cleanDate = dateStr.replace(/^COLLECTED:\s*/i, '');
+      formattedDate = `Collected: ${cleanDate}`;
+    }
+
+    const dateTimeStr = [formattedDate, timeStr].filter(Boolean).join(' | ');
+
+    let formattedCollector = '';
+    if (collectorStr) {
+      const cleanCollector = collectorStr.replace(/^BY\s+/i, '');
+      formattedCollector = `by ${cleanCollector}`;
+    }
+
+    const line3 = [dateTimeStr, formattedCollector].filter(Boolean).join(' ');
+
+    return [line1, line2, line3].filter(l => l !== '').join('\n');
+  };
+
+  const computedLabelText = getComputedLabelText();
+  const activeLabelText = customLabelText !== null ? customLabelText : computedLabelText;
+
+  const parseRawDataLocally = (text: string) => {
+    if (!text) return null;
+
+    let name = '';
+    let age = '';
+    let sex = '';
+    let birthday = '';
+    let case_number = '';
+    let ward_location = '';
+    const labLines: string[] = [];
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    for (const line of lines) {
+      // 1. Name: look for LAST, FIRST or "Name: ..."
+      if (!name) {
+        const nameMatch = line.match(/(?:patient\s*name|pt\s*name|name)\s*[:=-]\s*([a-z\s,.-]+)/i);
+        if (nameMatch) {
+          name = nameMatch[1].trim().toUpperCase();
+        } else if (/^[A-Z\s,.-]{5,}$/.test(line) && line.includes(',') && !line.includes('AGE') && !line.includes('WARD') && !line.includes('CASE')) {
+          name = line.trim().toUpperCase();
+        }
+      }
+
+      // 2. Age & Sex: e.g. 45/F, 45 F, 45F, 45yo F, Age: 45 Sex: F
+      if (!age || !sex) {
+        const ageSexMatch = line.match(/(\d{1,3})\s*(?:yo|y\/o|yrs|years old|yr)?\s*[\/,]?\s*([MF]|MALE|FEMALE)\b/i) ||
+                            line.match(/\b([MF]|MALE|FEMALE)\s*[\/,]?\s*(\d{1,3})\s*(?:yo|y\/o|yrs|years old|yr)?/i);
+        if (ageSexMatch) {
+          if (/\d/.test(ageSexMatch[1])) {
+            age = ageSexMatch[1];
+            sex = ageSexMatch[2].charAt(0).toUpperCase();
+          } else {
+            sex = ageSexMatch[1].charAt(0).toUpperCase();
+            age = ageSexMatch[2];
+          }
+        } else {
+          const ageMatch = line.match(/(?:age)\s*[:=-]?\s*(\d{1,3})/i);
+          if (ageMatch) age = ageMatch[1];
+          const sexMatch = line.match(/(?:sex|gender)\s*[:=-]?\s*([MF]|MALE|FEMALE)/i);
+          if (sexMatch) sex = sexMatch[1].charAt(0).toUpperCase();
+        }
+      }
+
+      // 3. Case Number: e.g. CN: 123456, Case: 2024-12345, CN123456
+      if (!case_number) {
+        const cnMatch = line.match(/(?:case\s*(?:no|number)?|cn|chart\s*(?:no|number)?|id)\s*[:=-]?\s*([A-Z0-9\/-]+)/i);
+        if (cnMatch) {
+          case_number = cnMatch[1].trim().toUpperCase().replace(/^CN:\s*/i, '').replace(/^CN\s*/i, '');
+        } else {
+          const rawCn = line.match(/\b(20\d{2}[-\/]\d{4,7}|\d{7,10})\b/);
+          if (rawCn) case_number = rawCn[1];
+        }
+      }
+
+      // 4. Birthday: e.g. DOB: 01/02/1990, Birthday: 1990-01-02, 01-02-1990
+      if (!birthday) {
+        const bdayMatch = line.match(/(?:dob|bday|birth\s*date|birthday)\s*[:=-]?\s*(\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4})/i);
+        if (bdayMatch) {
+          birthday = bdayMatch[1].replaceAll('.', '/').replaceAll('-', '/');
+        } else if (/^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(line) || /^\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}$/.test(line)) {
+          if (!line.includes('CASE') && !line.includes('CN')) {
+            birthday = line.replaceAll('.', '/').replaceAll('-', '/');
+          }
+        }
+      }
+
+      // 5. Ward / Location: e.g. Ward 3, Room 102, ICU, ER
+      if (!ward_location) {
+        const locMatch = line.match(/(?:ward|location|room|bed|dept|unit)\s*[:=-]?\s*([a-z0-9\s-]+)/i);
+        if (locMatch) {
+          ward_location = locMatch[1].trim().toUpperCase();
+        } else {
+          const m = line.match(/\b(ICU|ER|OR|DR|5W|4W|3W|2W|6W|7W|8W|9W|10W|ROOM\s*\d+|BED\s*\d+)\b/i);
+          if (m) ward_location = m[1].toUpperCase();
+        }
+      }
+
+      // 6. Labs: tests
+      if (!line.toLowerCase().includes('patient') && !line.toLowerCase().includes('name:') && !line.toLowerCase().includes('case') && !line.toLowerCase().includes('dob:') && !line.toLowerCase().includes('ward')) {
+        const cleanLab = line.replace(/^[\s*•\-–\[\]\(\)]+/, '').trim();
+        if (cleanLab && cleanLab.length < 50 && !/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(cleanLab)) {
+          labLines.push(cleanLab);
+        }
+      }
+    }
+
+    return {
+      name,
+      age,
+      sex,
+      birthday,
+      case_number,
+      ward_location,
+      labs: labLines.join('\n')
+    };
+  };
+
+  const applyInstantLocalExtraction = (rawText: string) => {
+    const parsed = parseRawDataLocally(rawText);
+    if (!parsed) return;
+    if (parsed.name) setManualName(parsed.name);
+    if (parsed.age) setManualAge(parsed.age);
+    if (parsed.sex) setManualSex(parsed.sex);
+    if (parsed.case_number) setManualCN(parsed.case_number);
+    if (parsed.birthday) setManualBirthday(parsed.birthday);
+    if (parsed.ward_location) setManualLocation(parsed.ward_location);
+    if (parsed.labs) setManualLabs(parsed.labs);
+  };
+
+  const handleCopyLabelText = () => {
+    if (!activeLabelText) return;
+    navigator.clipboard.writeText(activeLabelText);
+    setCopiedLabel(true);
+    setTimeout(() => setCopiedLabel(false), 2000);
+  };
+
   const handleAutoFill = async () => {
     if (!unstructured.trim()) return;
+
+    // 1. Instant local extraction (0ms response time)
+    applyInstantLocalExtraction(unstructured);
+
+    // 2. High-speed AI extraction with gemini-2.5-flash for intelligent categorization
     setLoading(true);
     try {
       const data = await extractLabData(unstructured, collector, getCurrentDateMMDD());
@@ -101,6 +291,7 @@ const TalongTab: React.FC = () => {
           };
           if (isEr) form.ward_location = "ER";
           if (timeCollected) form.time_collected = timeCollected;
+          else if (!form.time_collected) form.time_collected = getTime10MinsAgo();
           if (collector) form.collected_by = collector.toUpperCase();
           return form;
         });
@@ -505,7 +696,7 @@ const TalongTab: React.FC = () => {
         diagnosis: '', 
         requested_by: '',
         date_collected: getCurrentDateMMDD(),
-        time_collected: timeCollected,
+        time_collected: timeCollected || getTime10MinsAgo(),
         collected_by: collector.toUpperCase(),
         specimen_type: first.specimen,
         site_of_collection: '',
@@ -999,7 +1190,11 @@ CBC
 Urinalysis
 Na,K,Cl'
                   value={unstructured}
-                  onChange={(e) => setUnstructured(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setUnstructured(val);
+                    applyInstantLocalExtraction(val);
+                  }}
                 />
                 <div className="flex items-center gap-3">
                   <button onClick={handleAutoFill} disabled={loading} className="bg-[#334155] text-white px-6 py-3 rounded-full font-bold hover:bg-opacity-90 transition-all flex-grow text-sm md:text-base">
@@ -1096,6 +1291,73 @@ Na,K,Cl'
                       onChange={(e) => setManualLabs(e.target.value)}
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Label Printer Output & QR Code */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 border-b border-gray-100 pb-2 gap-2">
+                <div>
+                  <h3 className="text-sm md:text-base font-bold text-[#334155] flex items-center gap-2 m-0">
+                    🏷️ Label Printer Text & QR Code
+                  </h3>
+                  <p className="text-[10px] md:text-xs text-gray-500 m-0">
+                    Formatted for label printing. Copy the text or scan the QR code.
+                  </p>
+                </div>
+                <button
+                  onClick={handleCopyLabelText}
+                  className={`text-xs px-3.5 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 font-bold shadow-sm cursor-pointer border-0 ${
+                    copiedLabel
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#334155] text-white hover:bg-[#475569]'
+                  }`}
+                >
+                  {copiedLabel ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedLabel ? 'Copied!' : 'Copy Label Text'}
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                {/* Formatted Output Box */}
+                <div className="flex-1 w-full">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] md:text-xs font-bold text-[#334155] uppercase tracking-wider">
+                      Formatted Text Output
+                    </label>
+                    {customLabelText !== null && (
+                      <button
+                        onClick={() => setCustomLabelText(null)}
+                        className="text-[10px] text-blue-600 hover:underline font-medium border-0 bg-transparent cursor-pointer p-0"
+                      >
+                        Reset to Auto
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    className="w-full !h-[90px] p-2.5 text-xs md:text-sm font-mono border border-[#ced4da] rounded-lg bg-gray-50 focus:bg-white focus:border-[#334155] focus:outline-none transition-all resize-none leading-snug"
+                    value={activeLabelText}
+                    onChange={(e) => setCustomLabelText(e.target.value)}
+                    placeholder={"LASTNAME, FIRSTNAME AGE/SEX\nCN: CASENUMBER DOB: XX/XX/XXXX\nCollected: DATETODAY | TIME by COLLECTEDBY"}
+                  />
+                </div>
+
+                {/* QR Code Beside Output Box */}
+                <div className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-xl border border-gray-200 min-w-[130px] flex-shrink-0">
+                  {activeLabelText.trim() ? (
+                    <QRCodeSVG
+                      value={activeLabelText}
+                      size={110}
+                      level="M"
+                      includeMargin={false}
+                    />
+                  ) : (
+                    <div className="w-[110px] h-[110px] flex items-center justify-center text-[10px] text-gray-400 text-center p-2 border border-dashed border-gray-300 rounded bg-white">
+                      Enter patient details for QR
+                    </div>
+                  )}
+                  <span className="text-[10px] text-gray-500 font-semibold mt-1.5">Scan QR for Label</span>
                 </div>
               </div>
             </div>

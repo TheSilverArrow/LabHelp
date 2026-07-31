@@ -35,7 +35,7 @@ export async function extractLabData(text: string, collector: string, date: stri
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.5-flash";
 
   const systemInstruction = SYSTEM_INSTRUCTION_TEMPLATE
     .replace("__COLLECTOR_DEFAULT__", collector || "")

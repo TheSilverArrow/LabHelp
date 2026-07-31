@@ -198,7 +198,7 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
     <div className="form-container">
       <div 
         className="form-preview lrf-coords"
-        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}single_lrf.jpg)` }}
+        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}single_lrf.png)` }}
       >
         {RENDER_FIELDS.map((field, idx) => {
           if (!field.key) return null;
