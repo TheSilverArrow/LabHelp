@@ -239,9 +239,9 @@ textarea:not(.overlay-field) {
 /* Coordinates - Percentage based for responsiveness */
 .ward-location { top: 26.25%; left: 2.33%; width: 74.70%; height: 4.43%; text-transform: uppercase; }
 .patient-name { top: 32.37%; left: 2.33%; width: 74.70%; height: 4.43%; text-transform: uppercase; }
-.age-sex-age { top: 38.33%; left: 2.81%; width: 12.05%; height: 4.26%; }
-.age-sex-sex { top: 38.33%; left: 35.90%; width: 12.05%; height: 4.26%; }
-.case-number { top: 38.33%; left: 55.90%; width: 31.33%; height: 4.26%; }
+.age-sex-age { top: 38.33%; left: 10.50%; width: 14.00%; height: 4.26%; }
+.age-sex-sex { top: 38.33%; left: 42.50%; width: 9.00%; height: 4.26%; }
+.case-number { top: 39.50%; left: 52.50%; width: 44.00%; height: 3.50%; text-align: center; }
 .birthday { top: 42.93%; left: 21.69%; width: 72.29%; height: 4.26%; }
 .diagnosis { top: 48.55%; left: 21.69%; width: 81.93%; height: 5.11%; }
 .requested-by { top: 57.07%; left: 1.93%; width: 91.57%; height: 5.11%; }
