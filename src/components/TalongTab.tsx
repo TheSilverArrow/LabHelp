@@ -746,6 +746,11 @@ const TalongTab: React.FC = () => {
         if (!matDetails['BLUE (WHITE)']) matDetails['BLUE (WHITE)'] = { count: 0, tests: [] };
         matDetails['BLUE (WHITE)'].count += 5;
         matDetails['BLUE (WHITE)'].tests.push('APAS Panel (5 Blue White)');
+      } else if (requests.includes('FACTOR IX') || requests.includes('BETHESDA') || requests.includes('FACTOR 9')) {
+        const blueTubeKey = (tube && tube.includes('WHITE')) ? 'BLUE (WHITE)' : 'BLUE';
+        if (!matDetails[blueTubeKey]) matDetails[blueTubeKey] = { count: 0, tests: [] };
+        matDetails[blueTubeKey].count += 14;
+        matDetails[blueTubeKey].tests.push(`${form.requests_list || 'Factor IX/Bethesda'} (14 Blue)`);
       } else if (tube !== 'N/A' && tube) {
         if (!matDetails[tube]) matDetails[tube] = { count: 0, tests: [] };
         matDetails[tube].count++;
@@ -785,8 +790,8 @@ const TalongTab: React.FC = () => {
         rems.add("PLASMA K: No tourniquet. No ice needed.");
       }
 
-      if (requests.includes('FACTOR IX') || requests.includes('BETHESDA ASSAY')) {
-        rems.add("Factor IX/Bethesda Assay: Patient and reference person MUST NOT be related. Both must fast for 8 hours. Available Tuesday & Wednesday only. Requires prior scheduling with MRL (Submitted to MRL).");
+      if (requests.includes('FACTOR IX') || requests.includes('BETHESDA') || requests.includes('FACTOR 9')) {
+        rems.add("Factor IX/Bethesda Assay: Patient and reference persons MUST NOT be related. Both must be NPO for 8 hours. 2 blue tops for patient and 6 blue tops each for the 2 controls. Available Tuesday & Wednesday only. Requires prior scheduling with MRL. Usually submitted 7:30 to 8am");
       }
 
       if (requests.includes('HBA1C')) rems.add("For HbA1c, fill to at least 2mL. Do not use a microtainer tube.");
@@ -1046,7 +1051,7 @@ const TalongTab: React.FC = () => {
     setIsManualForms(false);
   };
 
-  const [mode, setMode] = useState<'needs' | 'generator'>('needs');
+  const [mode, setMode] = useState<'needs' | 'generator'>('generator');
 
   const handlePrint = () => {
     try {
