@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import { LabRequest } from '../types';
 import { RENDER_FIELDS } from '../constants';
 
 interface LabFormProps {
   form: LabRequest;
   onUpdate: (updatedForm: LabRequest) => void;
+  onRemove?: () => void;
+  formIndex?: number;
 }
 
 interface AutoFitFieldProps {
@@ -129,7 +132,7 @@ const AutoFitField: React.FC<AutoFitFieldProps> = ({
   );
 };
 
-const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
+const LabForm: React.FC<LabFormProps> = ({ form, onUpdate, onRemove, formIndex }) => {
   const [fontSizes, setFontSizes] = useState<Record<string, number>>({});
   const [setter, setSetter] = useState<{ visible: boolean; x: number; y: number; field: string; baseSize: number } | null>(null);
 
@@ -195,7 +198,24 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate }) => {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container relative group">
+      {onRemove && (
+        <div className="no-print absolute top-2 right-2 z-30 flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
+          {formIndex !== undefined && (
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+              #{formIndex + 1}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRemove}
+            className="bg-red-500 hover:bg-red-600 text-white p-1 rounded-md transition-all flex items-center justify-center cursor-pointer border-0 shadow-sm"
+            title="Remove this lab request form"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      )}
       <div 
         className="form-preview lrf-coords"
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}single_lrf.png)` }}

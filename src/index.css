@@ -351,6 +351,11 @@ input:checked + .slider:before {
   .print-content, .print-content * {
     visibility: visible;
   }
+
+  .no-print, .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
   
   .print-content {
     position: absolute;

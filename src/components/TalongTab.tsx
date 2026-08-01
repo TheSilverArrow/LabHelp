@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { LabRequest, MaterialDetail, Reminder } from '../types';
 import { extractLabData } from '../services/gemini';
 import LabForm from './LabForm';
@@ -19,9 +19,11 @@ const TalongTab: React.FC = () => {
   const [showLookup, setShowLookup] = useState(false);
   const [lookupSearch, setLookupSearch] = useState('');
   const [forms, setForms] = useState<LabRequest[]>([]);
+  const [isManualForms, setIsManualForms] = useState(false);
   const [collector, setCollector] = useState(localStorage.getItem('pgh_collector_name') || '');
   const [timeCollected, setTimeCollected] = useState('');
   const [isEr, setIsEr] = useState(localStorage.getItem('pgh_er_override') === 'true');
+  const [removeTime, setRemoveTime] = useState(localStorage.getItem('pgh_remove_time') === 'true');
   const [showFullGenerator, setShowFullGenerator] = useState(false);
   const [loading, setLoading] = useState(false);
   const [materials, setMaterials] = useState<Record<string, MaterialDetail>>({});
@@ -36,6 +38,10 @@ const TalongTab: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('pgh_er_override', String(isEr));
   }, [isEr]);
+
+  useEffect(() => {
+    localStorage.setItem('pgh_remove_time', String(removeTime));
+  }, [removeTime]);
 
   const getCurrentDateMMDD = () => {
     const now = new Date();
@@ -57,6 +63,9 @@ const TalongTab: React.FC = () => {
 
   const getComputedLabelText = () => {
     const nameStr = (manualName || forms[0]?.name || '').trim().toUpperCase();
+    const locStr = isEr ? 'ER' : (manualLocation || forms[0]?.ward_location || '').trim().toUpperCase();
+    const nameWithLocStr = locStr && !nameStr.startsWith(locStr) ? `${locStr} ${nameStr}` : nameStr;
+
     const ageStr = manualAge.trim();
     const sexStr = manualSex.trim().toUpperCase();
     let ageSexStr = '';
@@ -66,7 +75,7 @@ const TalongTab: React.FC = () => {
     } else if (forms[0]?.age_sex) {
       ageSexStr = forms[0].age_sex.trim().toUpperCase();
     }
-    const line1 = [nameStr, ageSexStr].filter(Boolean).join(' ');
+    const line1 = [nameWithLocStr, ageSexStr].filter(Boolean).join(' ');
 
     let cnRaw = (manualCN || forms[0]?.case_number || '').trim().toUpperCase();
     if (cnRaw && !cnRaw.startsWith('CN:') && !cnRaw.startsWith('CN ')) {
@@ -82,8 +91,8 @@ const TalongTab: React.FC = () => {
     const line2 = [cnRaw, bdayRaw].filter(Boolean).join(' ');
 
     const dateStr = forms[0]?.date_collected || getCurrentDateMMDD();
-    const rawTime = (timeCollected || forms[0]?.time_collected || '').trim().toUpperCase();
-    const timeStr = rawTime || getTime10MinsAgo();
+    const rawTime = removeTime ? '' : (timeCollected || forms[0]?.time_collected || '').trim().toUpperCase();
+    const timeStr = removeTime ? '' : (rawTime || getTime10MinsAgo());
     const collectorStr = (collector || forms[0]?.collected_by || '').trim().toUpperCase();
 
     let formattedDate = '';
@@ -228,6 +237,8 @@ const TalongTab: React.FC = () => {
   const handleAutoFill = async () => {
     if (!unstructured.trim()) return;
 
+    setIsManualForms(false);
+
     // 1. Instant local extraction (0ms response time)
     applyInstantLocalExtraction(unstructured);
 
@@ -290,7 +301,8 @@ const TalongTab: React.FC = () => {
             requests_list: item.requests_list || ''
           };
           if (isEr) form.ward_location = "ER";
-          if (timeCollected) form.time_collected = timeCollected;
+          if (removeTime) form.time_collected = '';
+          else if (timeCollected) form.time_collected = timeCollected;
           else if (!form.time_collected) form.time_collected = getTime10MinsAgo();
           if (collector) form.collected_by = collector.toUpperCase();
           return form;
@@ -307,6 +319,8 @@ const TalongTab: React.FC = () => {
   };
 
   useEffect(() => {
+    if (isManualForms) return;
+
     const lookup = getParsedLookup();
     const rawLines = manualLabs.split(/[\n,]/).map(l => l.trim()).filter(l => l !== '');
     const lines: string[] = [];
@@ -696,7 +710,7 @@ const TalongTab: React.FC = () => {
         diagnosis: '', 
         requested_by: '',
         date_collected: getCurrentDateMMDD(),
-        time_collected: timeCollected || getTime10MinsAgo(),
+        time_collected: removeTime ? '' : (timeCollected || getTime10MinsAgo()),
         collected_by: collector.toUpperCase(),
         specimen_type: first.specimen,
         site_of_collection: '',
@@ -709,7 +723,7 @@ const TalongTab: React.FC = () => {
 
     setForms(groupedRequests);
     calculateMaterialsAndReminders(groupedRequests);
-  }, [manualName, manualBirthday, manualAge, manualSex, manualCN, manualLocation, manualLabs, isEr, timeCollected, collector]);
+  }, [manualName, manualBirthday, manualAge, manualSex, manualCN, manualLocation, manualLabs, isEr, timeCollected, collector, isManualForms, removeTime]);
 
   const calculateMaterialsAndReminders = (formList: LabRequest[]) => {
     const matDetails: Record<string, MaterialDetail> = {};
@@ -972,8 +986,64 @@ const TalongTab: React.FC = () => {
   const updateForm = (index: number, updatedForm: LabRequest) => {
     const newForms = [...forms];
     newForms[index] = updatedForm;
+    setIsManualForms(true);
     setForms(newForms);
     calculateMaterialsAndReminders(newForms);
+  };
+
+  const handleRemoveTimeToggle = (checked: boolean) => {
+    setRemoveTime(checked);
+    if (isManualForms) {
+      const updated = forms.map(f => ({
+        ...f,
+        time_collected: checked ? '' : (timeCollected || getTime10MinsAgo())
+      }));
+      setForms(updated);
+      calculateMaterialsAndReminders(updated);
+    }
+  };
+
+  const handleAddForm = () => {
+    let ageSex = '';
+    if (manualAge || manualSex) {
+      ageSex = `${manualAge}/${manualSex}`.replace(/^\/|\/$/g, '');
+    } else if (forms.length > 0) {
+      ageSex = forms[0].age_sex || '';
+    }
+
+    const newForm: LabRequest = {
+      name: (manualName || forms[0]?.name || '').toUpperCase(),
+      ward_location: isEr ? "ER" : (manualLocation || forms[0]?.ward_location || '').toUpperCase(),
+      age_sex: ageSex,
+      birthday: manualBirthday || forms[0]?.birthday || '',
+      case_number: (manualCN || forms[0]?.case_number || '').toUpperCase(),
+      diagnosis: forms[0]?.diagnosis || '',
+      requested_by: forms[0]?.requested_by || '',
+      date_collected: forms[0]?.date_collected || getCurrentDateMMDD(),
+      time_collected: removeTime ? '' : (timeCollected || forms[0]?.time_collected || getTime10MinsAgo()),
+      collected_by: (collector || forms[0]?.collected_by || '').toUpperCase(),
+      specimen_type: 'Blood',
+      site_of_collection: '',
+      form_type: 'Clinical Chemistry',
+      tube_top: 'RED',
+      requests_list: '' // Left blank so user can manually type/add the lab requests
+    };
+
+    const updated = [...forms, newForm];
+    setIsManualForms(true);
+    setForms(updated);
+    calculateMaterialsAndReminders(updated);
+  };
+
+  const handleRemoveForm = (index: number) => {
+    const updated = forms.filter((_, i) => i !== index);
+    setIsManualForms(true);
+    setForms(updated);
+    calculateMaterialsAndReminders(updated);
+  };
+
+  const handleResetAutoForms = () => {
+    setIsManualForms(false);
   };
 
   const [mode, setMode] = useState<'needs' | 'generator'>('needs');
@@ -1164,16 +1234,24 @@ const TalongTab: React.FC = () => {
                 <label className="control-label min-w-[100px] md:min-w-0 text-xs md:text-sm">Time Collected:</label>
                 <input 
                   type="text" 
-                  className="control-input !w-full md:!w-[120px] flex-grow md:flex-initial text-base" 
+                  className="control-input !w-full md:!w-[120px] flex-grow md:flex-initial text-base disabled:opacity-50 disabled:bg-gray-200" 
                   placeholder="HH:MM am/pm"
                   value={timeCollected}
                   onChange={(e) => setTimeCollected(e.target.value)}
+                  disabled={removeTime}
                 />
               </div>
               <div className="flex items-center w-full md:w-auto justify-between md:justify-start">
                 <span className="control-label mr-2.5 text-xs md:text-sm">ER Override:</span>
                 <label className="toggle-switch">
                   <input type="checkbox" checked={isEr} onChange={(e) => setIsEr(e.target.checked)} />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+              <div className="flex items-center w-full md:w-auto justify-between md:justify-start">
+                <span className="control-label mr-2.5 text-xs md:text-sm">Remove Time:</span>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={removeTime} onChange={(e) => handleRemoveTimeToggle(e.target.checked)} />
                   <span className="slider round"></span>
                 </label>
               </div>
@@ -1339,7 +1417,7 @@ Na,K,Cl'
                     className="w-full !h-[90px] p-2.5 text-xs md:text-sm font-mono border border-[#ced4da] rounded-lg bg-gray-50 focus:bg-white focus:border-[#334155] focus:outline-none transition-all resize-none leading-snug"
                     value={activeLabelText}
                     onChange={(e) => setCustomLabelText(e.target.value)}
-                    placeholder={"LASTNAME, FIRSTNAME AGE/SEX\nCN: CASENUMBER DOB: XX/XX/XXXX\nCollected: DATETODAY | TIME by COLLECTEDBY"}
+                    placeholder={"LOCATION LASTNAME, FIRSTNAME AGE/SEX\nCN: CASENUMBER DOB: XX/XX/XXXX\nCollected: DATETODAY | TIME by COLLECTEDBY"}
                   />
                 </div>
 
@@ -1565,35 +1643,96 @@ Na,K,Cl'
 
       {mode === 'generator' && (
         <>
-          <div className="form-header-container">
-            <h2>Generated Form Previews</h2>
-            <button 
-              onClick={handlePrint}
-              className="bg-[#334155] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-[#475569] transition-colors shadow-md"
-            >
-              🖨️ Print Forms (Final Step)
-            </button>
+          <div className="form-header-container flex flex-wrap items-center justify-between gap-3 my-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-[#334155] dark:text-slate-100 m-0">Generated Form Previews</h2>
+              {isManualForms && (
+                <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-2.5 py-0.5 rounded-full font-semibold">
+                  Manual Mode
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {isManualForms && (
+                <button 
+                  onClick={handleResetAutoForms}
+                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Switch back to automatic form generation from raw text"
+                >
+                  <RotateCcw size={14} />
+                  Switch to Auto
+                </button>
+              )}
+              <button 
+                onClick={handleAddForm}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer border-0"
+                title="Add a new blank lab request form with patient details pre-filled"
+              >
+                <Plus size={16} />
+                Add Lab Request
+              </button>
+              <button 
+                onClick={handlePrint}
+                className="bg-[#334155] text-white px-4 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-2 hover:bg-[#475569] transition-colors shadow-md cursor-pointer border-0"
+              >
+                🖨️ Print Forms (Final Step)
+              </button>
+            </div>
           </div>
 
-          <div id="preview-instructions" className="bg-white border border-[#ced4da] p-[15px] rounded-lg my-5 shadow-[0_6px_15px_rgba(0,0,0,0.05)]">
-            <p className="text-base mt-1.25 text-[#374151]">
+          <div id="preview-instructions" className="bg-white dark:bg-slate-800 border border-[#ced4da] dark:border-slate-700 p-[15px] rounded-lg my-5 shadow-[0_6px_15px_rgba(0,0,0,0.05)]">
+            <p className="text-base mt-1.25 text-[#374151] dark:text-slate-300">
               <strong>• Edit Text:</strong> Click any text box on the forms to make final adjustments.
             </p>
-            <p className="text-base mt-1.25 text-[#374151]">
+            <p className="text-base mt-1.25 text-[#374151] dark:text-slate-300">
               <strong>• Change Font Size:</strong> Double-click any text box. A size input will pop out.
             </p>
-            <p className="text-base mt-1.25 text-[#374151]">
+            <p className="text-base mt-1.25 text-[#374151] dark:text-slate-300">
+              <strong>• Add / Remove Forms:</strong> Click <strong>+ Add Lab Request</strong> to create a new form with patient details pre-filled, or click <strong>🗑️</strong> at top right of any form to remove it.
+            </p>
+            <p className="text-base mt-1.25 text-[#374151] dark:text-slate-300">
               <strong>• Printing:</strong> Set scale to 88% and ensure paper size is A4.
             </p>
-            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
-              <p className="text-xs text-gray-500 italic">Scale to 88% and ensure paper size is A4 for best results.</p>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3">
+              <p className="text-xs text-gray-500 dark:text-slate-400 italic">Scale to 88% and ensure paper size is A4 for best results.</p>
             </div>
           </div>
 
           <div className="form-previews flex flex-wrap gap-[15px] p-0 justify-start print-content">
-            {forms.map((form, idx) => (
-              <LabForm key={idx} form={form} onUpdate={(updated) => updateForm(idx, updated)} />
-            ))}
+            {forms.length > 0 ? (
+              forms.map((form, idx) => (
+                <LabForm 
+                  key={idx} 
+                  form={form} 
+                  formIndex={idx}
+                  onUpdate={(updated) => updateForm(idx, updated)} 
+                  onRemove={() => handleRemoveForm(idx)}
+                />
+              ))
+            ) : (
+              <div className="w-full p-8 text-center bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 my-4 no-print">
+                <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 font-medium mb-3">
+                  No lab request forms present.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={handleAddForm}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer border-0"
+                  >
+                    <Plus size={16} />
+                    Add Blank Form
+                  </button>
+                  <button
+                    onClick={handleResetAutoForms}
+                    className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer border-0"
+                  >
+                    <RotateCcw size={14} />
+                    Switch to Auto
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
