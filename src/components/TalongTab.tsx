@@ -1697,10 +1697,10 @@ Na,K,Cl'
               <strong>• Add / Remove Forms:</strong> Click <strong>+ Add Lab Request</strong> to create a new form with patient details pre-filled, or click <strong>🗑️</strong> at top right of any form to remove it.
             </p>
             <p className="text-base mt-1.25 text-[#374151] dark:text-slate-300">
-              <strong>• Printing:</strong> Set scale to 95% and ensure paper size is A4 and no margins.
+              <strong>• Printing:</strong> Leave scale at 100%. Form dimensions are configured so that 4 requests naturally fit on 1 A4 sheet with minimal margins.
             </p>
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3">
-              <p className="text-xs text-gray-500 dark:text-slate-400 italic">Scale to 88% and ensure paper size is A4 for best results.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 italic">Ensure paper size is A4 with minimal margins in the print preview (keep scale at 100%).</p>
             </div>
           </div>
 
