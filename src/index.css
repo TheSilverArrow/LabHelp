@@ -334,11 +334,6 @@ input:checked + .slider:before {
 }
 
 /* Print Styles */
-@page {
-  size: A4 portrait;
-  margin: 4mm;
-}
-
 @media print {
   /* Hide everything except the print content */
   html, body {
@@ -347,37 +342,6 @@ input:checked + .slider:before {
     height: auto !important;
     overflow: visible !important;
     background: white !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Completely remove non-printable sections from document flow */
-  #main-nav-bar,
-  .mobile-menu-btn,
-  .input-section,
-  .materials-and-reminders-group,
-  .form-header-container,
-  #preview-instructions,
-  .instruction-text,
-  .no-print,
-  .font-setter-container {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  #root,
-  main,
-  #main-content-area,
-  #form-tool-content,
-  .preview-section {
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    background: transparent !important;
   }
 
   body * {
@@ -394,25 +358,21 @@ input:checked + .slider:before {
   }
   
   .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
     display: flex !important;
     flex-wrap: wrap !important;
+    gap: 5px !important;
     justify-content: center !important;
-    align-content: flex-start !important;
-    gap: 2.5mm !important;
-    width: 100% !important;
-    max-width: 200mm !important;
-    margin: 0 auto !important;
     padding: 0 !important;
-    background: transparent !important;
-    position: relative !important;
+    margin: 0 !important;
   }
 
   .form-container {
-    width: 97.5mm !important;
-    height: 137.9mm !important;
-    max-width: 97.5mm !important;
-    max-height: 137.9mm !important;
-    flex: 0 0 97.5mm !important;
+    width: 415px !important;
+    height: 587px !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
@@ -420,20 +380,16 @@ input:checked + .slider:before {
     overflow: hidden !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-    box-sizing: border-box !important;
     visibility: visible !important;
   }
 
-  .form-container:nth-child(4n):not(:last-child) {
+  .form-container:nth-child(4n) {
     page-break-after: always !important;
-    break-after: page !important;
   }
 
   .form-preview {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 97.5mm !important;
-    max-height: 137.9mm !important;
+    width: 415px !important;
+    height: 587px !important;
     aspect-ratio: 415 / 587 !important;
     background-size: 100% 100% !important;
     background-position: center !important;

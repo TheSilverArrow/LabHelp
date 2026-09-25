@@ -274,7 +274,7 @@ const LabForm: React.FC<LabFormProps> = ({ form, onUpdate, onRemove, formIndex }
 
       {setter && setter.visible && (
         <div 
-          className="font-setter-container no-print"
+          className="font-setter-container"
           style={{ left: `${setter.x}px`, top: `${setter.y}px` }}
         >
           <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Font Size (px): </label>
