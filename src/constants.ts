@@ -417,6 +417,7 @@ You MUST STRICTLY FOLLOW ALL RULES BELOW:
 - **FSH:** 'Follicle-stimulating Hormone' and 'FSH' refer to 'FSH'.
 - **LH:** 'Luteinizing Hormone' and 'LH' refer to 'LH'.
 - **Ammonia:** 'Ammonia' and 'NH3' refer to the same test.
+- **Albumin:** 'Alb' and 'Albumin' refer to the test 'Albumin'.
 - **MRL Tests at Central Labs:**
     - **Stool AFB** and **TB Quantiferon** are available at Central Labs.
     - **Schedule:** Only available Monday to Thursday, 8:00 AM - 3:00 PM.

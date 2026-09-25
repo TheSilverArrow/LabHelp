@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ClipboardList, X, Printer, Maximize2 } from 'lucide-react';
-import { AnimatedTabIcon } from './AnimatedTabIcon';
 
 interface PrintablesTabProps {
   onModalToggle?: (isOpen: boolean) => void;
@@ -29,7 +28,6 @@ const PrintablesTab: React.FC<PrintablesTabProps> = ({ onModalToggle }) => {
     <div id="third-tool" className="tool-content active">
       <div className="input-section">
         <div id="title-logo-wrapper">
-          <AnimatedTabIcon id="third-tool" isActive={true} size={30} />
           <h2>Printables Repository</h2>
         </div>
 

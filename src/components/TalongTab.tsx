@@ -5,7 +5,6 @@ import { LabRequest, MaterialDetail, Reminder } from '../types';
 import { extractLabData } from '../services/gemini';
 import LabForm from './LabForm';
 import { CUP_SPECIMENS, getParsedLookup, LookupEntry } from '../constants';
-import { AnimatedTabIcon } from './AnimatedTabIcon';
 
 const TalongTab: React.FC = () => {
   const [unstructured, setUnstructured] = useState('');
@@ -50,9 +49,9 @@ const TalongTab: React.FC = () => {
     return `${month}-${day}`;
   };
 
-  const getTime10MinsAgo = () => {
+  const getDefaultCollectedTime = () => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() - 10);
+    now.setMinutes(now.getMinutes() + 15);
     let hours = now.getHours();
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -92,7 +91,7 @@ const TalongTab: React.FC = () => {
 
     const dateStr = forms[0]?.date_collected || getCurrentDateMMDD();
     const rawTime = removeTime ? '' : (timeCollected || forms[0]?.time_collected || '').trim().toUpperCase();
-    const timeStr = removeTime ? '' : (rawTime || getTime10MinsAgo());
+    const timeStr = removeTime ? '' : (rawTime || getDefaultCollectedTime());
     const collectorStr = (collector || forms[0]?.collected_by || '').trim().toUpperCase();
 
     let formattedDate = '';
@@ -303,7 +302,7 @@ const TalongTab: React.FC = () => {
           if (isEr) form.ward_location = "ER";
           if (removeTime) form.time_collected = '';
           else if (timeCollected) form.time_collected = timeCollected;
-          else if (!form.time_collected) form.time_collected = getTime10MinsAgo();
+          else if (!form.time_collected) form.time_collected = getDefaultCollectedTime();
           if (collector) form.collected_by = collector.toUpperCase();
           return form;
         });
@@ -326,6 +325,7 @@ const TalongTab: React.FC = () => {
     const lines: string[] = [];
     
     const aliases: Record<string, string[]> = {
+      'albumin': ['alb'],
       'na': ['sodium'], 'k': ['potassium'], 'cl': ['chloride'], 'ca': ['calcium'],
       'mg': ['magnesium'], 'phos': ['phosphorus', 'po4'], 'fbs': ['sugar', 'glucose', 'rbs'],
       'rbs': ['random blood sugar', 'rbs'],
@@ -514,7 +514,7 @@ const TalongTab: React.FC = () => {
       const normalizedInput = lowerLine.replace(/[^a-z0-9]/g, '');
       
       // Strictness: Ignore very short inputs that aren't known aliases
-      const isKnownShortAlias = ['na', 'k', 'cl', 'ca', 'mg', 'c3', 'bt', 'ua', 'pt', 'tb', 'db', 'ib', 'rf'].includes(normalizedInput);
+      const isKnownShortAlias = ['na', 'k', 'cl', 'ca', 'mg', 'c3', 'bt', 'ua', 'pt', 'tb', 'db', 'ib', 'rf', 'alb'].includes(normalizedInput);
       if (normalizedInput.length < 3 && !isKnownShortAlias) {
         return null;
       }
@@ -621,7 +621,7 @@ const TalongTab: React.FC = () => {
         const nameU = test.testName.toUpperCase();
         if (nameU.includes('QUALI') || nameU.includes(' PH') || nameU === 'PH' || nameU.includes('CELL COUNT') || nameU.includes('DIFF') || nameU.includes('CELL CNT')) {
           groupKey = 'QUAL';
-        } else if (nameU.includes('QUANT') || nameU.includes('TP') || nameU.includes('GLUC') || nameU.includes('SUGAR') || nameU.includes('LDH') || nameU.includes('ALBUMIN') || nameU.includes('PROTEIN') || nameU.includes('AMYLASE')) {
+        } else if (nameU.includes('QUANT') || nameU.includes('TP') || nameU.includes('GLUC') || nameU.includes('SUGAR') || nameU.includes('LDH') || nameU.includes('ALBUMIN') || nameU.includes('ALB') || nameU.includes('PROTEIN') || nameU.includes('AMYLASE')) {
           groupKey = 'QUANT';
         } else if (nameU.includes('GS/CS') || nameU.includes('AFB') || nameU.includes('C/S') || nameU.includes('GSCS') || nameU.includes('INDIA INK') || nameU.includes('FUNGAL') || nameU.includes('KOH') || nameU.includes('GRAM') || nameU.includes('TB CS') || nameU.includes('TBCS') || nameU.includes('CULTURE')) {
           groupKey = 'MICRO';
@@ -710,7 +710,7 @@ const TalongTab: React.FC = () => {
         diagnosis: '', 
         requested_by: '',
         date_collected: getCurrentDateMMDD(),
-        time_collected: removeTime ? '' : (timeCollected || getTime10MinsAgo()),
+        time_collected: removeTime ? '' : (timeCollected || getDefaultCollectedTime()),
         collected_by: collector.toUpperCase(),
         specimen_type: first.specimen,
         site_of_collection: '',
@@ -1001,7 +1001,7 @@ const TalongTab: React.FC = () => {
     if (isManualForms) {
       const updated = forms.map(f => ({
         ...f,
-        time_collected: checked ? '' : (timeCollected || getTime10MinsAgo())
+        time_collected: checked ? '' : (timeCollected || getDefaultCollectedTime())
       }));
       setForms(updated);
       calculateMaterialsAndReminders(updated);
@@ -1025,7 +1025,7 @@ const TalongTab: React.FC = () => {
       diagnosis: forms[0]?.diagnosis || '',
       requested_by: forms[0]?.requested_by || '',
       date_collected: forms[0]?.date_collected || getCurrentDateMMDD(),
-      time_collected: removeTime ? '' : (timeCollected || forms[0]?.time_collected || getTime10MinsAgo()),
+      time_collected: removeTime ? '' : (timeCollected || forms[0]?.time_collected || getDefaultCollectedTime()),
       collected_by: (collector || forms[0]?.collected_by || '').toUpperCase(),
       specimen_type: 'Blood',
       site_of_collection: '',
@@ -1066,7 +1066,6 @@ const TalongTab: React.FC = () => {
     <div id="form-tool-content" className="w-full">
       <div className="input-section">
         <div id="title-logo-wrapper">
-          <AnimatedTabIcon id="form-tool-content" isActive={true} size={30} />
           <h2 className="text-xl md:text-2xl">Labs Assistant</h2>
         </div>
 
@@ -1597,6 +1596,7 @@ Na,K,Cl'
                       };
 
                       const aliases: Record<string, string[]> = {
+                        'albumin': ['alb'],
                         'na': ['sodium'], 'k': ['potassium'], 'cl': ['chloride'], 'ca': ['calcium'],
                         'mg': ['magnesium'], 'phos': ['phosphorus', 'po4'], 'fbs': ['sugar', 'glucose'],
                         'bua': ['uric acid', 'blood uric acid', 'blooduricacid'], 'crea': ['creatinine'], 'urinalysis': ['ua'],
